@@ -84,8 +84,9 @@ cmd_build_backend() {
 
 cmd_up() {
   info "Subindo stack via docker-compose..."
+  export DOCKER_BUILDKIT=1
   cd "$REPO_ROOT"
-  docker-compose up -d --build
+  docker compose up -d --build
   info "Aguardando healthchecks..."
   sleep 10
   docker-compose ps

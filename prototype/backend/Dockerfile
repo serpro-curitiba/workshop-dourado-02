@@ -1,5 +1,6 @@
 # ─── Stage 1: build ───────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jdk-alpine AS build
+RUN apk add --no-cache maven
 WORKDIR /workspace
 
 # cache de dependências antes de copiar o código

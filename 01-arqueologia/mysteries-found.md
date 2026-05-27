@@ -42,154 +42,105 @@
 
 ## Mistérios Catalogados
 
-| ID      | Descrição | Onde Encontrado | Impacto Potencial | Confiança |
-| ------- | --------- | --------------- | ----------------- | --------- |
-| MYS-001 | Constante mágica `0.347215` aplicada como multiplicador em cálculo de correção. Sem comentário ou documentação. | `CADPROG.NSN#L65` | Erro de cálculo afetando todos os programas sociais; possível resíduo da conversão Cruzeiro Real (1994) | ALTA |
-| MYS-002 | Fevereiro é assumido com 29 dias hardcoded independente do ano | `VALBENEF.NSN#L119` | Bug latente: cálculos de idade/aniversário podem falhar silenciosamente em anos não-bissextos | ALTA |
-| MYS-003 | CPFs com prefixo ∈ {000, 001, 002, 010, 011, 099, 100, 999} bypassam validação MOD 11 | `VALDOCS.NSN#L122-L130` | Risco crítico de segurança/fraude: permite cadastro com CPF inválido | ALTA |
-| MYS-004 | Região = 99 bypassa todas as regras de elegibilidade (renda, idade, documentação) | `VALELEG.NSN#L79-L83` | Risco regulatório alto: beneficiários "região 99" recebem sem checagem | ALTA |
-| MYS-005 | Campo `DOCUMENTOS-OK` referenciado em `VALBENEF` e `BATCHPGT` como pré-requisito de pagamento, mas **não existe no DDM** `BENEFICIARIO` | `VALBENEF.NSN#L142-L155`, `BATCHPGT.NSN#L127-L135`; ausente em `BENEFICIARIO.ddm` | Comportamento atual desconhecido — pode estar usando default null que avalia como falso, ou tabela auxiliar não documentada | ALTA |
-| MYS-006 | Tabelas IPCA hardcoded no programa de correção monetária cobrem apenas 2010-2012; o que acontece para outros anos? | `CALCCORR.NSN#L18-L67` | Reajustes anuais em janeiro podem usar valor zero/lixo desde 2013 | ALTA |
-| MYS-007 | Campo `FATOR-K` (PROGRAMA-SOCIAL.BG) inserido em Ago/2008 sem especificação; comentário diz apenas "ATENDE SOLICITACAO SENARC" | `PROGRAMA-SOCIAL.ddm` campo `BG` | Multiplicador final do valor base — opacidade total sobre lógica de negócio aplicada a ~180M pagamentos/mês | ALTA |
-| MYS-008 | Ação `CO` (Consulta) deixou de ser gravada em AUDITORIA desde 2010 (comentário cita "PORT CGTI 213/2010 — perf") | `CONSBENF.NSN#L82-L88` | LGPD-incompatível para 2018+: não há rastro de quem acessou dados pessoais | ALTA |
-| MYS-009 | Bug conhecido de máscara de CPF em CONSBENF — comentário "NAO CORRIGIR SEM APROVACAO DA AUDIT" congela o defeito desde 2014 | `CONSBENF.NSN#L97-L108` | Exposição parcial de CPF na tela; correção bloqueada por processo organizacional | MÉDIA |
-| MYS-010 | Desconto judicial (tipo 'J') não tem teto, podendo zerar líquido (BR-007/BR-008 combinados). Caso real em 2014. | `CALCDSCT.NSN#L102-L107` | Passivo trabalhista latente: parte do desconto é silenciosamente descartada | ALTA |
-| MYS-011 | Tipo de desconto 'C' (contribuição) declarado em `DEFINE DATA` mas nenhum branch do `DECIDE` trata; código morto ou feature incompleta | `CALCDSCT.NSN#L10, L102-L126` | Inconsistência declarativa; provável remoção segura | MÉDIA |
-| MYS-012 | Status `S` tem dois significados conflitantes: "suspenso" em VALBENEF; "idoso >75 anos" em CADBENEF | `VALBENEF.NSN#L207-L213` vs `CADBENEF.NSN#L155-L158` | Risco semântico na migração; relatórios podem somar dois grupos não relacionados | ALTA |
-| MYS-013 | Arredondamento diverge entre `BATCHREL` (`+0.005` antes do truncamento) e `CALCBENF` (truncamento direto) | `BATCHREL.NSN#L98-L102`, `CALCBENF.NSN#L181-L187` | Relatórios mostram valores diferentes do banco; reconciliação manual mensal | ALTA |
-| MYS-014 | DDM `BENEFICIARIO` permite 10 ocorrências em PE `DA` (dependentes); programa `CADDEPEND` limita a 5 | `CADDEPEND.NSN#L42`, `BENEFICIARIO.ddm` | 5 slots órfãos no Adabas; podem ter dados de versões anteriores nunca migrados | MÉDIA |
-| MYS-015 | Arquivo AUDITORIA (~25M registros, 153) nunca foi purgado desde 1998. Lei 8159/1991 exige só 10 anos. | `AUDITORIA.ddm` (comentários de criação), histórico operacional | Custo de storage + risco LGPD (dados além do prazo legal) | ALTA |
+| ID      | Resposta ao checklist | Onde Encontrado | Impacto Potencial | Confiança |
+| ------- | --------------------- | --------------- | ----------------- | --------- |
+| MYS-001 | `CADBENEF` altera silenciosamente o status para `S` quando a idade calculada é maior que 75 anos | `CADBENEF.NSN#L151-L157` | Mistura classificação etária com situação operacional; outro fluxo interpreta `S` como suspenso | ALTA |
+| MYS-002 | `CADDEPEND` limita inclusão a 5 dependentes, mas o DDM `BENEFICIARIO` permite 10 ocorrências no grupo periódico | `CADDEPEND.NSN#L61-L65`, `BENEFICIARIO.ddm#L59-L66` | Cinco posições podem existir no Adabas sem serem mantidas pela tela atual | MÉDIA |
+| MYS-003 | Constante mágica `0.347215` entra no cálculo de `#FATOR-K` sem origem documentada | `CADPROG.NSN#L87-L89` | Alterar ou preservar o fator muda valor-base de programas sociais sem justificativa auditável | ALTA |
+| MYS-004 | Em dezembro, o cálculo muda para `TIPO-PGTO = 'D'`, adicionando 13º salário e abono natalino para programa assistencial | `CALCBENF.NSN#L242-L260`, `BATCHPGT.NSN#L291-L307` | Migração que trate dezembro como mês normal subpaga beneficiários | ALTA |
+| MYS-005 | Valores monetários são truncados após multiplicar por 100, sem arredondamento financeiro | `CALCBENF.NSN#L232-L235`, `BATCHPGT.NSN#L283-L286`, `CALCDSCT.NSN#L181-L184` | Perda sistemática de centavos e divergência com relatórios que arredondam | ALTA |
+| MYS-006 | Desconto judicial (`J`) ignora o teto de 30% aplicado aos demais descontos | `CALCDSCT.NSN#L130-L142`, `CALCDSCT.NSN#L166-L170` | Pode consumir todo o benefício; decisão jurídica precisa ser explícita | ALTA |
+| MYS-007 | CPFs com prefixos `000`, `001`, `002`, `010`, `011`, `099`, `100` e `999` são aceitos como documento especial | `VALDOCS.NSN#L45-L53`, `VALDOCS.NSN#L166-L177` | Bypass de validação MOD 11 pode permitir cadastro inválido ou de teste em produção | ALTA |
+| MYS-008 | Região `99` encerra a rotina de elegibilidade como elegível antes das demais verificações | `VALELEG.NSN#L105-L110` | Beneficiários da região especial pulam renda, idade, status e documentação | ALTA |
+| MYS-009 | `BATCHPGT` processa por CPF, ordem menos intuitiva que programa/região, porque downstream passou a depender disso | `BATCHPGT.NSN#L194-L199` | Reordenar o batch pode quebrar conciliação, arquivos externos ou auditorias históricas | MÉDIA |
+| MYS-010 | Eventos de auditoria `EX` são lidos, contados como filtrados e nunca exibidos nos relatórios | `RELAUDIT.NSN#L105-L111` | Exclusões ficam ocultas da trilha operacional, ainda que existam no arquivo de auditoria | ALTA |
 
 ## Detalhamento dos Mistérios
 
-### MYS-001: Constante mágica `0.347215`
+### MYS-001: Status `S` para maiores de 75 anos
 
-- **Arquivo**: `01-arqueologia/legado-sifap/natural-programs/CADPROG.NSN#L65`
-- **Trecho de código**:
+- **Arquivo**: `01-arqueologia/legado-sifap/natural-programs/CADBENEF.NSN#L151-L157`
+- **O que o código faz**: Ao incluir ou alterar beneficiário, calcula a idade e move `S` para `#STATUS` quando `#IDADE > 75`.
+- **Por que é mistério**: No DDM, `S` significa suspenso; aqui o mesmo código representa um critério demográfico.
+- **Risco se ignorarmos**: A migração pode suspender indevidamente idosos ou perder uma classificação etária escondida.
 
-```natural
-* APLICA FATOR DE CONVERSAO
-COMPUTE VALOR-AJUSTADO = VALOR-BASE * 0.347215
-```
+### MYS-002: Limite 5 no programa, limite 10 no DDM
 
-- **O que esperávamos**: Uma constante nomeada, com comentário citando origem (lei, decreto, fórmula)
-- **O que o código faz**: Multiplica o valor base por um número mágico sem explicação
-- **Hipótese do time**: Fator residual da conversão **Cruzeiro Real → Real** (jul/1994, paridade 1 URV = CR$ 2.750). Mas `0.347215 ≈ 1/2.880` não bate exatamente. Pode ser fator de uma reforma monetária anterior (Cruzado novo, Plano Verão) congelado e nunca removido.
-- **Risco se ignorarmos**: Todos os valores base de programas sociais ficam multiplicados por uma constante desconhecida. **Migrar com `0.347215` literal preserva o bug; migrar sem ele muda valores de milhões de pagamentos.** Decisão precisa ser de negócio + jurídico.
+- **Arquivo**: `CADDEPEND.NSN#L61-L65`, `BENEFICIARIO.ddm#L59-L66`
+- **O que o código faz**: Bloqueia inclusão quando `#NUM-DEP > 5`, embora o grupo periódico de dependentes tenha 10 ocorrências.
+- **Risco se ignorarmos**: Dados antigos nas posições 6-10 podem ser descartados ou ficar invisíveis na modernização.
 
----
+### MYS-003: Constante mágica `0.347215`
 
-### MYS-003: CPF prefix bypass (risco crítico)
+- **Arquivo**: `CADPROG.NSN#L87-L89`
+- **O que o código faz**: Calcula `#FATOR-K = 1.00 + (#FATOR-REAJ * 0.347215)` sem explicar a origem do fator.
+- **Risco se ignorarmos**: Preservar ou remover o número muda valores de programas sociais sem base normativa clara.
 
-- **Arquivo**: `VALDOCS.NSN#L122-L130`
-- **Trecho de código**:
+### MYS-004: Dezembro tem fórmula própria
 
-```natural
-IF CPF-PREFIXO = '000' OR = '001' OR = '002' OR
-                = '010' OR = '011' OR = '099' OR
-                = '100' OR = '999'
-  MOVE 'S' TO CPF-VALIDO
-  ESCAPE ROUTINE
-END-IF
-```
+- **Arquivo**: `CALCBENF.NSN#L242-L260`, `BATCHPGT.NSN#L291-L307`
+- **O que o código faz**: Em dezembro, muda o tipo de pagamento para `D`, calcula 13º e adiciona abono de 15% para programas tipo `A`.
+- **Risco se ignorarmos**: Um cálculo mensal genérico não reproduz a folha de dezembro.
 
-- **O que esperávamos**: Validação MOD 11 universal
-- **O que o código faz**: Auto-aprova CPFs com prefixos específicos
-- **Hipótese do time**: Originalmente para "CPFs de teste corporativos" da Receita ou ambientes piloto. Nunca removido. Permite fraude se um operador conhece a brecha.
-- **Risco se ignorarmos**: Migrar como está = perpetuar vulnerabilidade. Migrar removendo = quebrar pagamentos legítimos que dependam de algum desses CPFs (verificar quantos beneficiários têm prefixos da lista).
+### MYS-005: Truncamento monetário sistemático
 
----
+- **Arquivo**: `CALCBENF.NSN#L232-L235`, `BATCHPGT.NSN#L283-L286`, `CALCDSCT.NSN#L181-L184`
+- **O que o código faz**: Multiplica por 100, move para variável inteira e divide por 100, truncando centavos.
+- **Risco se ignorarmos**: Arredondar no sistema novo pode gerar divergência financeira contra o legado.
 
-### MYS-004: Região 99 bypass total
+### MYS-006: Judicial sem teto
 
-- **Arquivo**: `VALELEG.NSN#L79-L83`
-- **Trecho de código**:
+- **Arquivo**: `CALCDSCT.NSN#L130-L142`, `CALCDSCT.NSN#L166-L170`
+- **O que o código faz**: Para `TIPO-DSCT = 'J'`, soma o desconto e pula a aplicação do teto de 30%.
+- **Risco se ignorarmos**: O benefício líquido pode ser zerado por decisão judicial sem log explícito da exceção.
 
-```natural
-IF REGIAO = 99
-  MOVE 'S' TO ELEGIVEL
-  ESCAPE ROUTINE
-END-IF
-```
+### MYS-007: Prefixos especiais de CPF
 
-- **O que esperávamos**: Região tratada apenas como índice geográfico
-- **O que o código faz**: Região 99 ignora **toda** validação de elegibilidade
-- **Hipótese do time**: Diplomáticos, brasileiros no exterior, ou caso institucional especial. Sem documentação no SENARC.
-- **Risco se ignorarmos**: Auditoria CGU pode questionar pagamentos "região 99". Esclarecer escopo antes de Estágio 2.
+- **Arquivo**: `VALDOCS.NSN#L45-L53`, `VALDOCS.NSN#L166-L177`
+- **O que o código faz**: Marca documento especial como válido para prefixos `000`, `001`, `002`, `010`, `011`, `099`, `100` e `999`.
+- **Risco se ignorarmos**: Manter o bypass perpetua uma brecha; remover sem análise pode bloquear cadastros legados.
 
----
+### MYS-008: Região 99 bypassa elegibilidade
 
-### MYS-005: Campo `DOCUMENTOS-OK` fantasma
+- **Arquivo**: `VALELEG.NSN#L105-L110`
+- **O que o código faz**: Retorna elegível imediatamente quando `#COD-REG = 99`.
+- **Risco se ignorarmos**: A regra especial precisa de decisão de negócio antes de virar requisito moderno.
 
-- **Arquivo**: `VALBENEF.NSN#L142-L155`, `BATCHPGT.NSN#L127-L135`
-- **Trecho de código**:
+### MYS-009: Ordem batch por CPF
 
-```natural
-IF BENEFICIARIO.STATUS = 'A' AND BENEFICIARIO.DOCUMENTOS-OK = 'S'
-  PERFORM PROCESSAR-PAGAMENTO
-END-IF
-```
+- **Arquivo**: `BATCHPGT.NSN#L194-L199`
+- **O que o código faz**: Lê beneficiários por CPF e registra que sistemas downstream dependem dessa ordenação.
+- **Risco se ignorarmos**: Melhorar a ordem por performance ou domínio pode quebrar consumidores externos.
 
-- **O que esperávamos**: Campo `DOCUMENTOS-OK` definido no DDM `BENEFICIARIO`
-- **O que o código faz**: Referencia campo que não está no FDT do arquivo 150
-- **Hipótese do time**: (a) Campo removido em refactor incompleto; (b) trigger/view Adabas não documentada; (c) campo derivado calculado em outro programa
-- **Risco se ignorarmos**: Comportamento atual da gate de pagamento é desconhecido. Precisa investigação no Adabas em produção.
+### MYS-010: Exclusões ocultas no relatório de auditoria
 
----
-
-### MYS-006: Tabelas IPCA congeladas em 2012
-
-- **Arquivo**: `CALCCORR.NSN#L18-L67`
-- **Trecho de código**:
-
-```natural
-DEFINE DATA LOCAL
-01 #IPCA(N6.2/12)  INIT <5.91, 6.50, 5.84>
-* ... (apenas índices 2010, 2011, 2012)
-END-DEFINE
-```
-
-- **O que esperávamos**: Tabela mantida anualmente ou consulta a sistema externo
-- **O que o código faz**: Hardcoded apenas 3 anos
-- **Hipótese do time**: Programa foi atualizado em 2012-2013 e nunca mais. Possivelmente substituído por job manual.
-- **Risco se ignorarmos**: Se ainda executado, reajustes ≥2013 usam zero ou lixo.
-
----
-
-### MYS-010: Desconto judicial sem teto
-
-- **Arquivo**: `CALCDSCT.NSN#L102-L107`
-- **Trecho de código**:
-
-```natural
-IF TIPO-DSCT = 'J'
-  COMPUTE VLR-DSCT-TOTAL = VLR-DSCT-TOTAL + VLR-DSCT-ATUAL
-* Sem checagem de teto
-END-IF
-```
-
-- **O que esperávamos**: Cap de 30% como nos demais tipos
-- **O que o código faz**: Soma sem limite — quando descontos judiciais superam o bruto, BR-008 zera silenciosamente
-- **Hipótese do time**: Originalmente correto (ordem judicial sobrepõe limites administrativos), mas combinação com BR-008 cria perda silenciosa
-- **Risco se ignorarmos**: Beneficiário não sabe que parte da pensão judicial foi descartada; passivo trabalhista
-
----
-
-> Demais mistérios (MYS-002, 007, 008, 009, 011-015) seguem mesmo padrão de evidência. Detalhar conforme necessário durante revisão do Estágio 2.
+- **Arquivo**: `RELAUDIT.NSN#L105-L111`
+- **O que o código faz**: Quando `AUDITORIA-V.ACAO = 'EX'`, incrementa filtrados e não exibe o evento.
+- **Risco se ignorarmos**: Exclusões podem permanecer invisíveis para auditoria operacional e compliance.
 
 ## Easter Eggs
 
-1. ☑ **Plano Verão (1989-1991)** — Código de conversão Cruzado→Cruzeiro mantido **comentado** em `CALCCORR.NSN#L70-L73` como "valor histórico". Não executa, mas preservado por nostalgia.
-2. ☑ **Posições 26-27 reservadas na tabela de regiões** — Brasil tem 27 estados; código aceita até 30 com valores=1.0. Comentário em `BATCHPGT.NSN#L210` diz "RESERVADO PARA NOVOS ESTADOS" (criado em 2003, antes da PEC dos territórios federais).
-3. ☑ **Comentário assinado em CONSBENF.NSN#L99**: `* NAO CORRIGIR SEM APROVACAO DA AUDIT - JCM 14/03/2014` (iniciais do desenvolvedor + data) — bug congelado por processo.
+1. ☑ **EGG-001 — Plano Verão (1989-1991)**: bloco comentado em `CALCCORR.NSN#L99-L113`, preservado como histórico da transição Cruzado→Cruzeiro.
+2. ☑ **EGG-002 — Documentos especiais**: validação em `VALDOCS.NSN#L166-L177` aceita prefixos de CPF sem MOD 11 real.
+3. ☑ **EGG-003 — Banco Real**: integração comentada em `BATCHCON.NSN#L207-L223`, mantida mesmo após aquisição pelo Santander.
+
+## Inconsistências e Achados Bônus
+
+| ID      | Descrição | Onde Encontrado | Observação |
+| ------- | --------- | --------------- | ---------- |
+| INC-001 | Método de arredondamento do relatório (`+0.005`) diverge do truncamento de cálculo | `BATCHREL.NSN#L98-L102`, `CALCBENF.NSN#L232-L235` | Não conta como mistério adicional; reforça MYS-005 |
+| INC-002 | Campo `DOCUMENTOS-OK` é usado em views Natural, mas não aparece no DDM `BENEFICIARIO` | `VALELEG.NSN#L24-L25`, `BENEFICIARIO.ddm` | Gap técnico para investigar antes da modelagem moderna |
+| INC-003 | `FATOR-K` existe no DDM com aviso de SENARC, mas não está na documentação funcional | `PROGRAMA-SOCIAL.ddm#L8-L13`, `PROGRAMA-SOCIAL.ddm#L39-L43` | Gap documental, relacionado à fórmula de cálculo |
+| INC-004 | DDM permite 10 dependentes e programa mantém 5 | `CADDEPEND.NSN#L61-L65`, `BENEFICIARIO.ddm#L59-L66` | Também é o mistério oficial MYS-002 |
 
 ## Resumo
 
-- Total de mistérios encontrados: **15** (cota mínima: 5)
-- Confiança alta: **11**
-- Confiança média: **4**
+- Total de mistérios encontrados: **10 / 10** (cota mínima: 5)
+- Confiança alta: **8**
+- Confiança média: **2**
 - Confiança baixa: **0**
-- Easter eggs encontrados: **3 / 3** ✓
+- Easter eggs encontrados: **3 / 3**
+- Inconsistências/bônus catalogados: **4**
 
 ---
 

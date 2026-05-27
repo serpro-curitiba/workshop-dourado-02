@@ -20,6 +20,12 @@ LINUX_FRONTEND="$HOME/sifap-frontend"
 MVN_HOME="$HOME/.local/opt/apache-maven-3.9.16"
 NVM_DIR="$HOME/.nvm"
 
+# Monta drive C se automount estiver desabilitado
+if [ ! -d /mnt/c ]; then
+  sudo mkdir -p /mnt/c
+  sudo mount -t drvfs C: /mnt/c -o metadata,uid=$(id -u),gid=$(id -g)
+fi
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 load_tools() {
   export M2_HOME="$MVN_HOME"

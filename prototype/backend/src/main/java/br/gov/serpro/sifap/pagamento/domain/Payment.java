@@ -33,8 +33,17 @@ public class Payment {
     @Column(name = "nominal_date", nullable = false)
     private LocalDate nominalDate;
 
+    @Column(name = "bank_code", nullable = false, length = 3)
+    private String bankCode;
+
+    @Column(nullable = false, length = 5)
+    private String agency;
+
+    @Column(nullable = false, length = 12)
+    private String account;
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 1)
+    @Column(nullable = false, columnDefinition = "varchar(1)")
     private PaymentStatus status;
 
     @Column(name = "created_at", nullable = false)
@@ -43,13 +52,17 @@ public class Payment {
     protected Payment() {}
 
     public Payment(String beneficiaryCpf, String socialProgramCode, String competence,
-                   BigDecimal grossAmount, BigDecimal netAmount, LocalDate nominalDate) {
+                   BigDecimal grossAmount, BigDecimal netAmount, LocalDate nominalDate,
+                   String bankCode, String agency, String account) {
         this.beneficiaryCpf = beneficiaryCpf;
         this.socialProgramCode = socialProgramCode;
         this.competence = competence;
         this.grossAmount = grossAmount;
         this.netAmount = netAmount;
         this.nominalDate = nominalDate;
+        this.bankCode = bankCode;
+        this.agency = agency;
+        this.account = account;
         this.status = PaymentStatus.G;
         this.createdAt = OffsetDateTime.now();
     }
@@ -61,6 +74,9 @@ public class Payment {
     public BigDecimal getGrossAmount() { return grossAmount; }
     public BigDecimal getNetAmount() { return netAmount; }
     public LocalDate getNominalDate() { return nominalDate; }
+    public String getBankCode() { return bankCode; }
+    public String getAgency() { return agency; }
+    public String getAccount() { return account; }
     public PaymentStatus getStatus() { return status; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
 

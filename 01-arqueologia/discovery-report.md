@@ -29,7 +29,7 @@
 
 ## 1. Sumário Executivo
 
-SIFAP é o sistema legado de pagamento de programas sociais do governo federal, implementado em **Natural/Adabas desde 1996** (29 anos). Compreende **15 programas `.NSN`** (online + batch noturno + relatórios) e **4 DDMs Adabas** (`BENEFICIARIO`, `PROGRAMA-SOCIAL`, `PAGAMENTO`, `AUDITORIA`), processa ~180M pagamentos/mês para ~45 programas sociais ativos. A leitura forense extraiu **30 regras de negócio críticas** e **15 mistérios** — incluindo bypasses de segurança ainda ativos (CPF, região 99), número mágico `0.347215` sem origem, e tabelas IPCA congeladas em 2012. O código é funcional mas opaco: documentação operacional não cobre fórmulas de cálculo, e auditoria deixou de registrar consultas em 2010 (risco LGPD direto). A modernização precisa preservar a fórmula central de pagamento e a trilha imutável de auditoria, ao mesmo tempo em que **explicita** as decisões hoje implícitas no código.
+SIFAP é o sistema legado de pagamento de programas sociais do governo federal, implementado em **Natural/Adabas desde 1996** (29 anos). Compreende **15 programas `.NSN`** (online + batch noturno + relatórios) e **4 DDMs Adabas** (`BENEFICIARIO`, `PROGRAMA-SOCIAL`, `PAGAMENTO`, `AUDITORIA`), processa ~180M pagamentos/mês para ~45 programas sociais ativos. A leitura forense extraiu **30 regras de negócio críticas** e **10 mistérios oficiais** — incluindo bypasses de segurança ainda ativos (CPF, região 99), número mágico `0.347215` sem origem, truncamento monetário sistemático e ocultação de eventos de exclusão nos relatórios de auditoria. O código é funcional mas opaco: documentação operacional não cobre fórmulas de cálculo nem exceções de negócio. A modernização precisa preservar a fórmula central de pagamento e a trilha imutável de auditoria, ao mesmo tempo em que **explicita** as decisões hoje implícitas no código.
 
 ---
 
@@ -78,16 +78,16 @@ Volume estimado: ~3.000 operadores ativos distribuídos em 27 estados.
 
 - **`BATCHPGT.NSN`** é o ponto de maior acoplamento: chama 3 subprogramas (`VALELEG`, `CALCBENF`, `CALCDSCT`), lê 2 DDMs (`BENEFICIARIO`, `PROGRAMA-SOCIAL`), escreve em 2 (`PAGAMENTO`, `AUDITORIA`). Qualquer mudança em fatores de cálculo cascateia.
 - **Cadeia `VALELEG → VALDOCS`** carrega os dois maiores bypasses (BR-003 região 99 e BR-012 CPF prefixo). Devem ser auditados juntos.
-- **`CALCBENF → CALCCORR`**: dependência de tabelas IPCA congeladas (MYS-006).
+- **`CALCBENF → CALCCORR`**: dependência de tabelas IPCA hardcoded/congeladas, tratada como dívida técnica de parametrização.
 - **Sem dependências circulares**. Diagrama completo em [`dependency-map.md`](dependency-map.md).
 
 ### 3.3 Dívida Técnica Identificada
 
 - [x] **Tabelas hardcoded sem manutenção**: regiões (27 + 3 reservadas, BATCHPGT#L186-L214), IPCA (só 2010-2012, CALCCORR#L18-L67), faixas de renda em R$ correntes não atualizados desde 2005 (BATCHPGT#L229-L234), faixas de contribuição social (CALCDSCT#L39-L48).
-- [x] **Campos fantasma**: `DOCUMENTOS-OK` referenciado mas inexistente no DDM (MYS-005); semântica conflitante do status `S` (MYS-012).
-- [x] **Arredondamento inconsistente**: `BATCHREL` vs `CALCBENF` (MYS-013) — relatórios não batem com PAGAMENTO.
+- [x] **Campos fantasma e semântica ambígua**: `DOCUMENTOS-OK` referenciado mas inexistente no DDM (INC-002); status `S` usado tanto como suspensão quanto como classificação para idosos >75 (MYS-001).
+- [x] **Arredondamento inconsistente**: `BATCHREL` arredonda enquanto `CALCBENF` trunca (MYS-005/INC-001) — relatórios não batem com PAGAMENTO.
 - [x] **Auditoria não purga desde 1998**: ~25M registros, custo de storage + violação prazo Lei 8159/1991.
-- [x] **Ação CO (consulta) não registrada desde 2010**: violação LGPD direta (MYS-008).
+- [x] **Ação EX ocultada em relatório**: exclusões existem na auditoria, mas `RELAUDIT` filtra sem exibir (MYS-010).
 - [x] **CPF impresso sem máscara em relatórios** (`RELAUDIT.NSN#L156-L168`): violação LGPD.
 - [x] **Bug de máscara CPF congelado por processo** (`CONSBENF.NSN#L97-L108`): mudança bloqueada desde 2014.
 - [x] **Loop potencial de estorno** (BATCHCON): sem limite de tentativas.
@@ -96,9 +96,9 @@ Volume estimado: ~3.000 operadores ativos distribuídos em 27 estados.
 
 - **Não existe** especificação da fórmula `BR-001` fora do código.
 - **`FATOR-K`** (PROGRAMA-SOCIAL.BG) sem qualquer documentação — inserido em Ago/2008 com comentário lacônico "ATENDE SOLICITACAO SENARC".
-- **Constante `0.347215`** (MYS-001) sem origem identificada.
+- **Constante `0.347215`** (MYS-003) sem origem identificada.
 - **Casos especiais "região 99" e "CPF prefixo"** sem registro do escopo de uso.
-- **Lista de easter eggs** (Plano Verão, reserva de regiões, comentário JCM) só descoberta por leitura forense.
+- **Lista de easter eggs** (Plano Verão, documentos especiais, Banco Real) só descoberta por leitura forense.
 
 ---
 
@@ -108,16 +108,16 @@ Volume estimado: ~3.000 operadores ativos distribuídos em 27 estados.
 
 | ID  | Descrição | Risco para Migração |
 | --- | --------- | ------------------- |
-| MYS-001 | Constante mágica `0.347215` em CADPROG#L65 | Migrar literal = preservar bug; migrar sem = mudar valor de todos os benefícios |
-| MYS-003 | CPF prefix bypass | Decisão: manter (fraude) vs remover (quebrar cadastros legados) |
-| MYS-004 | Região 99 bypassa elegibilidade | Auditoria regulatória pode invalidar; decisão de negócio obrigatória |
-| MYS-005 | Campo `DOCUMENTOS-OK` fantasma | Comportamento atual desconhecido — bloqueador de Estágio 2 |
-| MYS-006 | IPCA hardcoded 2010-2012 | Reajustes ≥2013 podem estar incorretos há 12 anos |
-| MYS-007 | FATOR-K sem doc | Multiplicador opaco em todos os pagamentos |
-| MYS-010 | Desconto judicial sem teto | Passivo trabalhista latente |
-| MYS-012 | Status 'S' com dois sentidos | Relatórios podem somar grupos não relacionados |
-| MYS-013 | Arredondamento divergente | Reconciliação manual mensal |
-| MYS-015 | AUDITORIA nunca purgada | Custo + LGPD |
+| MYS-001 | Status `S` aplicado automaticamente a beneficiários >75 anos | Migração precisa separar situação operacional de classificação demográfica |
+| MYS-002 | Dependentes: código limita 5, DDM permite 10 | Risco de perder posições 6-10 em dados legados |
+| MYS-003 | Constante mágica `0.347215` em CADPROG | Migrar literal = preservar fator opaco; migrar sem = mudar valor de benefícios |
+| MYS-004 | Dezembro usa fórmula própria com 13º e abono | Cálculo mensal genérico subpaga a folha de dezembro |
+| MYS-005 | Truncamento monetário sistemático | Arredondamento moderno pode divergir do legado centavo a centavo |
+| MYS-006 | Desconto judicial sem teto de 30% | Passivo jurídico se a exceção não for explicitada |
+| MYS-007 | CPF prefix bypass | Decisão: manter (fraude) vs remover (quebrar cadastros legados) |
+| MYS-008 | Região 99 bypassa elegibilidade | Auditoria regulatória pode invalidar; decisão de negócio obrigatória |
+| MYS-009 | Batch depende da ordem por CPF | Reordenar processamento pode quebrar sistemas downstream |
+| MYS-010 | Eventos `EX` ocultados em relatório de auditoria | Exclusões podem ficar invisíveis para compliance |
 
 Detalhamento completo: [`mysteries-found.md`](mysteries-found.md).
 
@@ -125,9 +125,9 @@ Detalhamento completo: [`mysteries-found.md`](mysteries-found.md).
 
 1. **Não escreva EARS para regras financeiras sem validar a fórmula BR-001 + os fatores BR-002-006 com SENARC.** Se o time inventar "FAT_RND" diferente do legado, milhões de pagamentos sairão errados.
 2. **Bypasses (BR-003, BR-012)** são decisão de negócio + jurídico, não de engenharia. Escalar antes de especificar.
-3. **Trilha de auditoria (BR-025)** é **mandatória legal** (IN-TCU 63/2010). Qualquer arquitetura nova precisa garantir INSERT-ONLY + retenção 10 anos + log de consultas (corrigindo MYS-008).
+3. **Trilha de auditoria (BR-025)** é **mandatória legal** (IN-TCU 63/2010). Qualquer arquitetura nova precisa garantir INSERT-ONLY + retenção 10 anos e relatórios que não ocultem exclusões (corrigindo MYS-010).
 4. **Conciliação CNAB 240 (BR-021/022)** precisa de bounded context próprio com idempotência e limite de retry — comportamento legado tem loop potencial.
-5. **Mistérios MYS-001, MYS-005, MYS-007** são **bloqueadores**: sem resposta do negócio, não dá para especificar Cadastro nem Cálculo.
+5. **Mistérios MYS-003, MYS-006, MYS-007 e MYS-008** são **bloqueadores**: sem resposta do negócio/jurídico, não dá para especificar Cálculo, Documentos e Elegibilidade.
 
 ---
 
@@ -138,8 +138,8 @@ Detalhamento completo: [`mysteries-found.md`](mysteries-found.md).
 | Prioridade | Funcionalidade | Justificativa |
 | ---------- | -------------- | ------------- |
 | 1 | **Auditoria + LGPD compliance** (RELAUDIT, AUDITORIA) | Maior risco regulatório imediato; permite migrar resto com rastreabilidade |
-| 2 | **Cadastro de Beneficiário** (CADBENEF, CADDEPEND, CONSBENF) | Entidade central; resolve MYS-009 (máscara CPF) e MYS-014 (5 vs 10 deps) |
-| 3 | **Cadastro de Programa Social** (CADPROG) | Pequeno mas crítico; expõe FATOR-K e 0.347215 |
+| 2 | **Cadastro de Beneficiário** (CADBENEF, CADDEPEND, CONSBENF) | Entidade central; resolve MYS-001 (status >75) e MYS-002 (5 vs 10 deps) |
+| 3 | **Cadastro de Programa Social** (CADPROG) | Pequeno mas crítico; expõe `0.347215` (MYS-003) e o gap documental de `FATOR-K` |
 | 4 | **Cálculo de Benefício** (CALCBENF, CALCCORR, CALCDSCT, VALELEG) | Núcleo financeiro; precisa de testes paralelos exaustivos vs legado |
 | 5 | **Geração de Ciclo** (BATCHPGT) | Maior volume; depende dos anteriores |
 | 6 | **Conciliação Bancária** (BATCHCON) | Pode rodar em paralelo com legado por meses |
@@ -165,11 +165,11 @@ Detalhamento completo: [`mysteries-found.md`](mysteries-found.md).
 
 - **Auditoria** (BR-025/026/027): voltar a logar consultas (LGPD), mascarar CPF em todos relatórios, definir política de retenção 10 anos com purge automatizado.
 - **Tabelas hardcoded** (regiões, IPCA, faixas de renda, contribuição): externalizar para tabelas de parâmetros versionadas com UI de manutenção e auditoria.
-- **Arredondamento** (MYS-013): unificar política (provavelmente banker's rounding) e gerar relatório de reconciliação automática.
+- **Truncamento/arredondamento** (MYS-005/INC-001): definir política financeira e gerar relatório de reconciliação automática.
 - **Estorno** (BR-022): adicionar limite de retry + dead-letter queue.
-- **`FATOR-K`** (MYS-007): documentar a fórmula com SENARC e dar nome semântico; manter parametrização.
-- **Limites de descontos** (MYS-010): teto explícito mesmo para judicial OU log de "valor descartado por teto".
-- **Status do beneficiário** (MYS-012): separar `STATUS-OPERACIONAL` de `CLASSIFICACAO-ETARIA`.
+- **`FATOR-K`** (gap documental): documentar a fórmula com SENARC e dar nome semântico; manter parametrização.
+- **Limites de descontos** (MYS-006): teto explícito mesmo para judicial OU log de "valor descartado por teto".
+- **Status do beneficiário** (MYS-001): separar `STATUS-OPERACIONAL` de `CLASSIFICACAO-ETARIA`.
 
 ---
 
@@ -183,7 +183,7 @@ Detalhamento completo: [`mysteries-found.md`](mysteries-found.md).
 | Regras escondidas encontradas | 10 / 10      |
 | Easter eggs encontrados       | 3 / 3        |
 | Termos no glossário           | 65           |
-| Mistérios catalogados         | 15           |
+| Mistérios catalogados         | 10           |
 | Tempo total gasto             | ~3 horas (single-operator + subagents paralelos) |
 
 ---
@@ -193,11 +193,11 @@ Detalhamento completo: [`mysteries-found.md`](mysteries-found.md).
 **Para a Engenheira de Requisitos (Persona 02) e Arquitetos (03/04):**
 
 1. **Bloqueadores de spec** que exigem resposta do negócio ANTES de escrever EARS:
-   - Origem e legitimidade da constante `0.347215` (MYS-001)
-   - Escopo de uso da "região 99" (MYS-004)
-   - Existência atual e fonte de `DOCUMENTOS-OK` (MYS-005)
-   - Definição de `FATOR-K` (MYS-007)
-   - Lista de CPFs reais com prefixo bypass (MYS-003)
+   - Origem e legitimidade da constante `0.347215` (MYS-003)
+   - Escopo de uso da "região 99" (MYS-008)
+   - Lista de CPFs reais com prefixo bypass (MYS-007)
+   - Regra jurídica para desconto judicial sem teto (MYS-006)
+   - Definição de `FATOR-K` (gap documental relacionado ao cálculo)
 
 2. **Para cada EARS**, lembre que `source_legacy:` é **obrigatório**:
    - Use entradas deste relatório como ponte: `source_legacy: 01-arqueologia/legado-sifap/natural-programs/<FILE>.NSN#L<a>-L<b> (ver BR-XXX em business-rules-catalog.md)`
@@ -216,7 +216,7 @@ Detalhamento completo: [`mysteries-found.md`](mysteries-found.md).
 - [x] Todas as seções acima preenchidas (sem placeholders).
 - [x] Pelo menos 5 regras críticas listadas em §3.1, cada uma referenciando uma `BR-XXX` do catálogo.
 - [x] Decisões de migrar/descartar/evoluir em §5 cobrem as 8+ funcionalidades principais.
-- [x] Métricas de §6 conferem com os outros artefatos (glossary.md: 65 termos, business-rules-catalog.md: 30 regras, mysteries-found.md: 15 mistérios).
+- [x] Métricas de §6 conferem com os outros artefatos (glossary.md: 65 termos, business-rules-catalog.md: 30 regras, mysteries-found.md: 10 mistérios).
 
 — Workshop Dourado-02
 

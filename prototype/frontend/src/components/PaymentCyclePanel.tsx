@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Painel de abertura de ciclo de pagamento.
+ * Painel de abertura de pagamentos da competencia.
  *
  * REQ-PAY-001 (BR-007): POST /api/v1/payment-cycles no 5º dia útil.
  * source_legacy: 01-arqueologia/legado-sifap/natural-programs/BATCHPGT.NSN#L42-L78
@@ -69,7 +69,7 @@ export function PaymentCyclePanel() {
             aria-describedby="competence-hint"
           />
           <span id="competence-hint" className="text-xs text-gray-400">
-            Ciclo abre no 5º dia útil do mês (BR-007)
+            Pagamentos disponiveis a partir do 5º dia util do mes (BR-007)
           </span>
         </div>
 
@@ -79,7 +79,7 @@ export function PaymentCyclePanel() {
           className="rounded-md bg-blue-700 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           aria-busy={loading}
         >
-          {loading ? "Abrindo…" : "Abrir Ciclo"}
+          {loading ? "Abrindo..." : "Abrir Pagamentos"}
         </button>
       </form>
 
@@ -94,7 +94,7 @@ export function PaymentCyclePanel() {
         >
           {result.ok ? (
             <>
-              <p className="font-semibold">✅ Ciclo aberto com sucesso</p>
+              <p className="font-semibold">Pagamentos abertos com sucesso</p>
               <ul className="mt-1 space-y-0.5 text-xs">
                 <li>Competência: <strong>{result.competence}</strong></li>
                 <li>Data nominal: <strong>{result.nominalDate}</strong></li>
@@ -103,7 +103,7 @@ export function PaymentCyclePanel() {
             </>
           ) : (
             <>
-              <p className="font-semibold">❌ {result.code}</p>
+              <p className="font-semibold">{result.code}</p>
               <p className="text-xs mt-1">{result.message}</p>
             </>
           )}

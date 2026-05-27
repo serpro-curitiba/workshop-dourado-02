@@ -10,7 +10,7 @@ src/main/java/br/gov/serpro/sifap/
 ├── calculo/                  ← bounded context: Cálculo (REQ-PAY-002/003)
 │   ├── domain/
 │   └── application/
-└── pagamento/                ← bounded context: Ciclo de Pagamento (REQ-PAY-001/011)
+└── pagamento/                ← bounded context: Pagamentos (REQ-PAY-001/011)
     ├── domain/
     ├── application/
     └── api/

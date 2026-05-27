@@ -4,7 +4,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 
 /**
- * Regras de data do ciclo de pagamento.
+ * Regras de data dos pagamentos.
  *
  * Implementa:
  *   REQ-PAY-001 (BR-007): geracao no 5o dia util.

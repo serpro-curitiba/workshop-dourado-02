@@ -21,10 +21,10 @@ import java.time.YearMonth;
 import java.util.List;
 
 /**
- * Orquestracao do ciclo mensal de pagamentos.
+ * Orquestracao dos pagamentos mensais.
  *
  * Implementa:
- *   REQ-PAY-001 (BR-007): so abre ciclo no 5o dia util.
+ *   REQ-PAY-001 (BR-007): so abre pagamentos no 5o dia util.
  *   REQ-PAY-011 (BR-010): regime de dezembro.
  *
  * source_legacy: 01-arqueologia/legado-sifap/natural-programs/BATCHPGT.NSN
@@ -76,7 +76,7 @@ public class PaymentCycleService {
     @Transactional
     public ApprovalSummary approveCycle(String competence, DevActor actor) {
         if (!actor.hasRole(Role.ADM)) {
-            throw new ForbiddenOperationException("Somente ADM pode aprovar ciclo de pagamento");
+            throw new ForbiddenOperationException("Somente ADM pode aprovar pagamentos");
         }
         List<Payment> payments = paymentRepository.findByCompetenceOrderByCreatedAtAsc(competence);
         if (payments.isEmpty()) {

@@ -1,6 +1,6 @@
 /**
  * Testes do PaymentCyclePanel
- * REQ-PAY-001 (BR-007): abertura de ciclo
+ * REQ-PAY-001 (BR-007): abertura de pagamentos
  * source_legacy: 01-arqueologia/legado-sifap/natural-programs/BATCHPGT.NSN#L42-L78
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -18,7 +18,7 @@ describe("PaymentCyclePanel", () => {
   it("renderiza o formulário com campo de competência", () => {
     render(<PaymentCyclePanel />);
     expect(screen.getByLabelText(/competência/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /abrir ciclo/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /abrir pagamentos/i })).toBeInTheDocument();
   });
 
   it("exibe sucesso quando API retorna 201", async () => {
@@ -32,10 +32,10 @@ describe("PaymentCyclePanel", () => {
     });
 
     render(<PaymentCyclePanel />);
-    fireEvent.click(screen.getByRole("button", { name: /abrir ciclo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /abrir pagamentos/i }));
 
     await waitFor(() =>
-      expect(screen.getByText(/ciclo aberto com sucesso/i)).toBeInTheDocument()
+      expect(screen.getByText(/pagamentos abertos com sucesso/i)).toBeInTheDocument()
     );
     expect(screen.getByText("2026-06")).toBeInTheDocument();
   });
@@ -45,12 +45,12 @@ describe("PaymentCyclePanel", () => {
       ok: false,
       json: async () => ({
         code: "CYCLE_TOO_EARLY",
-        message: "Ciclo só pode ser aberto a partir de 2026-06-05",
+        message: "Pagamentos da competencia 2026-06 so podem ser abertos a partir de 2026-06-05",
       }),
     });
 
     render(<PaymentCyclePanel />);
-    fireEvent.click(screen.getByRole("button", { name: /abrir ciclo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /abrir pagamentos/i }));
 
     await waitFor(() =>
       expect(screen.getByText("CYCLE_TOO_EARLY")).toBeInTheDocument()
@@ -62,12 +62,12 @@ describe("PaymentCyclePanel", () => {
       ok: false,
       json: async () => ({
         code: "CYCLE_ALREADY_EXISTS",
-        message: "Ciclo 2026-06 já existe",
+        message: "Pagamentos ja existem para competencia 2026-06",
       }),
     });
 
     render(<PaymentCyclePanel />);
-    fireEvent.click(screen.getByRole("button", { name: /abrir ciclo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /abrir pagamentos/i }));
 
     await waitFor(() =>
       expect(screen.getByText("CYCLE_ALREADY_EXISTS")).toBeInTheDocument()
@@ -78,7 +78,7 @@ describe("PaymentCyclePanel", () => {
     mockFetch.mockRejectedValueOnce(new Error("network"));
 
     render(<PaymentCyclePanel />);
-    fireEvent.click(screen.getByRole("button", { name: /abrir ciclo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /abrir pagamentos/i }));
 
     await waitFor(() =>
       expect(screen.getByText("NETWORK_ERROR")).toBeInTheDocument()

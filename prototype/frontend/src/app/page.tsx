@@ -1,6 +1,6 @@
 /**
  * SIFAP 2.0 — Dashboard principal
- * REQ-PAY-001..014: operacao do ciclo de pagamento
+ * REQ-PAY-001..014: operacao de pagamentos mensais
  * source_legacy: 01-arqueologia/legado-sifap/natural-programs/BATCHPGT.NSN#L42-L78
  */
 
@@ -21,12 +21,12 @@ export default function HomePage() {
         <HealthBadge />
       </header>
 
-      <section aria-labelledby="ciclo-heading" className="mb-8">
+      <section aria-labelledby="pagamentos-heading" className="mb-8">
         <h2
-          id="ciclo-heading"
+          id="pagamentos-heading"
           className="text-lg font-semibold text-gray-700 mb-4"
         >
-          Ciclo de Pagamento Mensal
+          Pagamentos Mensais
         </h2>
         <PaymentOperationsDashboard />
       </section>

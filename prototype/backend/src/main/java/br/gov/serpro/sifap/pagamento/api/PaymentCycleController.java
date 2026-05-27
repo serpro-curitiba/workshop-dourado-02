@@ -46,7 +46,7 @@ public class PaymentCycleController {
         this.reconciliationService = reconciliationService;
     }
 
-    /** REQ-PAY-001: abrir ciclo da competencia. */
+    /** REQ-PAY-001: abrir pagamentos da competencia. */
     @PostMapping
     public ResponseEntity<?> open(@RequestBody OpenCycleRequest request, HttpServletRequest httpRequest) {
         try {

@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Testes da regra de calendario do ciclo.
+ * Testes da regra de calendario de pagamentos.
  *
  * REQ-PAY-001 (BR-007): 5o dia util.
  * REQ-PAY-011 (BR-010): regime de dezembro (dia 20).

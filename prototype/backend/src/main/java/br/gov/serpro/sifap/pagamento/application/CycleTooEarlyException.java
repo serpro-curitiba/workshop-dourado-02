@@ -7,7 +7,7 @@ public class CycleTooEarlyException extends RuntimeException {
     private final LocalDate today;
 
     public CycleTooEarlyException(String competence, LocalDate earliest, LocalDate today) {
-        super("Ciclo " + competence + " so pode ser aberto a partir de " + earliest + " (hoje=" + today + ")");
+        super("Pagamentos da competencia " + competence + " so podem ser abertos a partir de " + earliest + " (hoje=" + today + ")");
         this.earliest = earliest;
         this.today = today;
     }

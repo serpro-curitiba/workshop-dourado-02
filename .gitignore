@@ -1,8 +1,9 @@
 # Reference materials cloned by scripts/setup.sh — never commit these.
 # Note: legado-natural/ is bundled with the kit (real folder) and IS committed.
 reference/
-prototype
-infra
+
+# prototype/ e infra/ agora contêm código real do time — rastreados pelo git.
+# (anteriormente eram symlinks para repositório de referência externo)
 
 # OS files
 .DS_Store

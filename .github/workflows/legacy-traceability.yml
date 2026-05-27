@@ -1,0 +1,36 @@
+name: legacy-traceability
+
+on:
+  pull_request:
+    branches: [develop, stage, main]
+    paths:
+      - 'specs/**'
+      - 'scripts/validate-traceability.py'
+      - '.github/workflows/legacy-traceability.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'specs/**'
+
+jobs:
+  validate:
+    name: Validar source_legacy em todos os REQ-IDs (ADR-003)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Executar validador
+        run: python3 scripts/validate-traceability.py
+
+      - name: Resumo no PR (em caso de falha)
+        if: failure()
+        run: |
+          echo "## Falha de rastreabilidade legado -> spec" >> $GITHUB_STEP_SUMMARY
+          echo "Veja [ADR-003](../blob/main/02-spec-moderna/ADR-003-source-legacy-ci-enforcement.md) e [LEGACY-EXPLORATION-CHECKLIST](../blob/main/01-arqueologia/LEGACY-EXPLORATION-CHECKLIST.md)." >> $GITHUB_STEP_SUMMARY
+          echo "Cada REQ-ID precisa de \`source_legacy:\` apontando para um arquivo em \`01-arqueologia/legado-sifap/\` ou \`[GREENFIELD] <justificativa>\`." >> $GITHUB_STEP_SUMMARY

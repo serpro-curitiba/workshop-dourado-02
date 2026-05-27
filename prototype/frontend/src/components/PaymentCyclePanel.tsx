@@ -6,6 +6,7 @@
  * REQ-PAY-001 (BR-007): POST /api/v1/payment-cycles no 5º dia útil.
  * source_legacy: 01-arqueologia/legado-sifap/natural-programs/BATCHPGT.NSN#L42-L78
  */
+
 import { useState } from "react";
 
 type CycleResult =

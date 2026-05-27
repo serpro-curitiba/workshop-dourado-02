@@ -3,8 +3,10 @@
  * REQ-PAY-001 (BR-007): abertura de pagamentos
  * source_legacy: 01-arqueologia/legado-sifap/natural-programs/BATCHPGT.NSN#L42-L78
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+
 import { PaymentCyclePanel } from "../components/PaymentCyclePanel";
 
 const mockFetch = vi.fn();
